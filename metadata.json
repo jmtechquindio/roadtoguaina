@@ -1,0 +1,6 @@
+{
+  "name": "Road to Guainía: Aventura Amazónica",
+  "description": "Juego de aventura y habilidad fluvial a través de 10 niveles en la selva del Guainía sorteando rocas, remolinos y fieras.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
