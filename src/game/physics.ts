@@ -4,7 +4,7 @@ import { soundManager } from '../audio/soundManager';
 export function createInitialPlayer(level: LevelConfig, canvasWidth: number, canvasHeight: number): PlayerBoat {
   return {
     x: canvasWidth / 2,
-    y: canvasHeight - 160,
+    y: 520, // comfortable cruising line in lower half
     vx: 0,
     vy: 0,
     width: 32,
@@ -21,10 +21,13 @@ export function createInitialPlayer(level: LevelConfig, canvasWidth: number, can
     paddleCycle: 0,
     isPaddlingLeft: false,
     isPaddlingRight: false,
+    isPaddlingUp: false,
+    isPaddlingDown: false,
     isBoosting: false,
     score: 0,
     flowersCollected: 0,
     distanceTraveled: 0,
+    timeElapsed: 0,
   };
 }
 
@@ -37,6 +40,9 @@ export function updatePlayer(
   riverRight: number,
   particles: Particle[]
 ): void {
+  // Track level time
+  player.timeElapsed += dt;
+
   // Grace period timer
   if (player.invulnerableTime > 0) {
     player.invulnerableTime = Math.max(0, player.invulnerableTime - dt);
@@ -49,108 +55,146 @@ export function updatePlayer(
   }
 
   // Stamina logic
-  const isSprinting = (input.boost || input.up) && player.stamina > 5;
+  const isSprinting = (input.boost || (input.up && input.boost)) && player.stamina > 5;
   player.isBoosting = isSprinting;
 
   if (isSprinting) {
-    player.stamina = Math.max(0, player.stamina - dt * 26);
+    player.stamina = Math.max(0, player.stamina - dt * 24);
   } else {
-    player.stamina = Math.min(player.maxStamina, player.stamina + dt * 18);
+    player.stamina = Math.min(player.maxStamina, player.stamina + dt * 16);
   }
 
-  // Rowers paddle animation cycle
-  const speed = Math.hypot(player.vx, player.vy);
-  player.paddleCycle += dt * (4 + speed * 0.05);
-
-  // Steering torque
-  const turnPower = 4.2;
+  // Record input directions
   player.isPaddlingLeft = input.left;
   player.isPaddlingRight = input.right;
+  player.isPaddlingUp = input.up || isSprinting;
+  player.isPaddlingDown = input.down;
 
-  if (input.left) {
-    player.angularVelocity -= turnPower * dt;
-    // Splash particles from left paddle
-    if (Math.random() < 0.35) {
+  // Paddle cycle animation speed
+  const isMoving = input.left || input.right || input.up || input.down || isSprinting;
+  player.paddleCycle += dt * (isMoving ? 5.5 : 2.5);
+
+  // 1. VERTICAL MOVEMENT (Up & Down on screen)
+  let targetVy = 0;
+  const restY = 520; // Default comfortable cruising height
+
+  if (player.isPaddlingUp) {
+    // When pressing UP: Boat climbs upriver on the screen
+    let upSpeed = -150;
+    if (isSprinting || player.speedBoostDuration > 0) upSpeed = -210;
+    targetVy = upSpeed;
+
+    // Upward paddle splash particles
+    if (Math.random() < 0.25) {
+      soundManager.playPaddleSplash(Math.random() < 0.5 ? 'left' : 'right');
+      particles.push({
+        x: player.x + (Math.random() - 0.5) * 36,
+        y: player.y + 20,
+        vx: (Math.random() - 0.5) * 20,
+        vy: 35 + Math.random() * 25,
+        size: 3 + Math.random() * 3,
+        alpha: 0.8,
+        life: 0.35,
+        maxLife: 0.35,
+        color: '#ccecf0',
+        type: 'foam',
+      });
+    }
+  } else if (player.isPaddlingDown) {
+    // When pressing DOWN: Boat retreats downriver / back-paddles on screen
+    targetVy = 135;
+
+    // Bow counter-froth when braking
+    if (Math.random() < 0.25) {
+      soundManager.playPaddleSplash('left');
+      particles.push({
+        x: player.x + (Math.random() - 0.5) * 24,
+        y: player.y - 30,
+        vx: (Math.random() - 0.5) * 25,
+        vy: -20 - Math.random() * 20,
+        size: 3 + Math.random() * 3,
+        alpha: 0.75,
+        life: 0.3,
+        maxLife: 0.3,
+        color: '#e2f4f8',
+        type: 'foam',
+      });
+    }
+  } else {
+    // Neutral: gently settle towards comfortable cruising line
+    targetVy = (restY - player.y) * 1.5;
+  }
+
+  // Smooth vertical acceleration
+  player.vy += (targetVy - player.vy) * Math.min(1, dt * 6.5);
+  player.y += player.vy * dt;
+
+  // Clamp vertical position: can climb to upper third (160px) or back up to bottom (630px)
+  if (player.y < 160) {
+    player.y = 160;
+    player.vy = Math.max(0, player.vy);
+  }
+  if (player.y > 630) {
+    player.y = 630;
+    player.vy = Math.min(0, player.vy);
+  }
+
+  // 2. HORIZONTAL MOVEMENT & STEERING (Left & Right)
+  let targetVx = 0;
+  let targetAngle = 0;
+  const steerSpeed = 145;
+
+  if (input.left && !input.right) {
+    targetVx = -steerSpeed;
+    targetAngle = -0.32; // ~18 degrees left bank
+    if (Math.random() < 0.3) {
       soundManager.playPaddleSplash('left');
       particles.push({
         x: player.x - 18,
         y: player.y + 10,
-        vx: -20 - Math.random() * 20,
-        vy: 20 + Math.random() * 20,
-        size: 3 + Math.random() * 4,
+        vx: -25 - Math.random() * 20,
+        vy: 15 + Math.random() * 15,
+        size: 3 + Math.random() * 3,
         alpha: 0.8,
-        life: 0.35,
-        maxLife: 0.35,
+        life: 0.3,
+        maxLife: 0.3,
         color: '#ccecf0',
-        type: 'foam'
+        type: 'foam',
       });
     }
-  }
-  if (input.right) {
-    player.angularVelocity += turnPower * dt;
-    if (Math.random() < 0.35) {
+  } else if (input.right && !input.left) {
+    targetVx = steerSpeed;
+    targetAngle = 0.32; // ~18 degrees right bank
+    if (Math.random() < 0.3) {
       soundManager.playPaddleSplash('right');
       particles.push({
         x: player.x + 18,
         y: player.y + 10,
-        vx: 20 + Math.random() * 20,
-        vy: 20 + Math.random() * 20,
-        size: 3 + Math.random() * 4,
+        vx: 25 + Math.random() * 20,
+        vy: 15 + Math.random() * 15,
+        size: 3 + Math.random() * 3,
         alpha: 0.8,
-        life: 0.35,
-        maxLife: 0.35,
+        life: 0.3,
+        maxLife: 0.3,
         color: '#ccecf0',
-        type: 'foam'
+        type: 'foam',
       });
     }
+  } else {
+    targetVx = 0;
+    targetAngle = 0;
   }
 
-  // Natural angular damping (water resistance to rotation)
-  player.angularVelocity *= Math.pow(0.08, dt);
-  player.angle += player.angularVelocity * dt;
-
-  // Clamp boat angle within +/- 60 degrees (cannot face directly backward against raging current)
-  const maxAngle = Math.PI / 3.2;
-  if (player.angle > maxAngle) {
-    player.angle = maxAngle;
-    player.angularVelocity = 0;
-  } else if (player.angle < -maxAngle) {
-    player.angle = -maxAngle;
-    player.angularVelocity = 0;
-  }
-
-  // Propulsion forward along boat's heading
-  let baseThrust = 160;
-  if (player.speedBoostDuration > 0) baseThrust += 100;
-  if (isSprinting) baseThrust += 85;
-  if (input.down) baseThrust *= 0.4; // back-paddling brake
-
-  // Forward thrust vector based on angle
-  const thrustX = Math.sin(player.angle) * baseThrust;
-  const thrustY = -Math.cos(player.angle) * baseThrust;
-
-  // Apply thrust to velocity
-  player.vx += thrustX * dt * 2.8;
-  player.vy += thrustY * dt * 2.8;
-
-  // Water linear drag
-  player.vx *= Math.pow(0.12, dt);
-  player.vy *= Math.pow(0.12, dt);
-
-  // Position updates
+  // Smooth horizontal interpolation
+  player.vx += (targetVx - player.vx) * Math.min(1, dt * 7.5);
+  player.angle += (targetAngle - player.angle) * Math.min(1, dt * 6.0);
   player.x += player.vx * dt;
-  // y position is bounded inside a comfortable forward/backward band in the bottom half of screen
-  player.y += player.vy * dt;
-
-  // Clamp Y inside screen
-  if (player.y < 280) player.y = 280;
-  if (player.y > 640) player.y = 640;
 
   // Bank collision bounds
   const margin = player.width * 0.8;
   if (player.x < riverLeft + margin) {
     player.x = riverLeft + margin;
-    player.vx = Math.abs(player.vx) * 0.4 + 20;
+    player.vx = 30;
     if (player.invulnerableTime <= 0 && player.shieldDuration <= 0) {
       player.health -= 3;
       soundManager.playRockCollision();
@@ -158,7 +202,7 @@ export function updatePlayer(
     }
   } else if (player.x > riverRight - margin) {
     player.x = riverRight - margin;
-    player.vx = -Math.abs(player.vx) * 0.4 - 20;
+    player.vx = -30;
     if (player.invulnerableTime <= 0 && player.shieldDuration <= 0) {
       player.health -= 3;
       soundManager.playRockCollision();
@@ -166,28 +210,35 @@ export function updatePlayer(
     }
   }
 
-  // Advance expedition distance
-  const forwardSpeed = Math.max(80, -player.vy * 0.6 + level.riverCurrent);
-  player.distanceTraveled += (forwardSpeed * dt * 0.35);
+  // 3. EXPEDITION DISTANCE PROGRESSION
+  // Calibrated so a 900m level takes ~60-65 seconds at cruising speed
+  let metersPerSec = 14.5;
+  if (player.isPaddlingUp) {
+    metersPerSec = isSprinting || player.speedBoostDuration > 0 ? 23 : 19.5;
+  } else if (player.isPaddlingDown) {
+    metersPerSec = 8.0;
+  }
 
-  // Score increases with distance
-  player.score += Math.round(dt * 15 * (isSprinting ? 1.5 : 1));
+  player.distanceTraveled += metersPerSec * dt;
+
+  // Score increments
+  player.score += Math.round(dt * (metersPerSec * 1.2));
 
   // Stern wake particles
-  if (Math.random() < 0.6) {
+  if (Math.random() < 0.45) {
     const sternX = player.x - Math.sin(player.angle) * (player.height * 0.45);
     const sternY = player.y + Math.cos(player.angle) * (player.height * 0.45);
     particles.push({
-      x: sternX + (Math.random() - 0.5) * 10,
-      y: sternY + (Math.random() - 0.5) * 10,
-      vx: (Math.random() - 0.5) * 15,
-      vy: level.riverCurrent * 0.3 + Math.random() * 20,
-      size: 2 + Math.random() * 4,
-      alpha: 0.7,
-      life: 0.5,
-      maxLife: 0.5,
+      x: sternX + (Math.random() - 0.5) * 8,
+      y: sternY + (Math.random() - 0.5) * 8,
+      vx: (Math.random() - 0.5) * 12,
+      vy: level.riverCurrent * 0.4 + Math.random() * 15,
+      size: 2 + Math.random() * 3,
+      alpha: 0.65,
+      life: 0.45,
+      maxLife: 0.45,
       color: '#d0eff5',
-      type: 'water'
+      type: 'water',
     });
   }
 }
@@ -201,7 +252,6 @@ export function checkBoatCollisionWithCircle(
   circleY: number,
   circleRadius: number
 ): boolean {
-  // We test 3 circles along the canoe hull: bow, center, stern
   const offsets = [-player.height * 0.35, 0, player.height * 0.35];
   const boatCircleRadius = player.width * 0.55;
 
@@ -233,8 +283,8 @@ export function updateObstacles(
     obs.rotation += obs.rotationSpeed * dt;
 
     if (obs.type === 'whirlpool') {
-      const pullRadius = obs.whirlpoolRadius || 120;
-      const strength = obs.whirlpoolStrength || 280;
+      const pullRadius = obs.whirlpoolRadius || 110;
+      const strength = obs.whirlpoolStrength || 200;
       const dx = obs.x - player.x;
       const dy = obs.y - player.y;
       const dist = Math.hypot(dx, dy);
@@ -246,78 +296,71 @@ export function updateObstacles(
         const dirX = dx / dist;
         const dirY = dy / dist;
 
-        // Player pulled toward whirlpool center
-        const vortexResistance = player.speedBoostDuration > 0 ? 0.35 : 1.0;
-        player.vx += dirX * pullFactor * dt * 2.2 * vortexResistance;
-        player.vy += dirY * pullFactor * dt * 2.2 * vortexResistance;
+        const vortexResistance = player.speedBoostDuration > 0 ? 0.3 : 0.85;
+        player.x += dirX * pullFactor * dt * 0.9 * vortexResistance;
+        player.y += dirY * pullFactor * dt * 0.9 * vortexResistance;
 
-        // Tangential spin force (orbits clockwise)
+        // Tangential swirl
         const tangX = -dirY;
         const tangY = dirX;
-        player.vx += tangX * pullFactor * dt * 1.5 * vortexResistance;
-        player.vy += tangY * pullFactor * dt * 1.5 * vortexResistance;
-        player.angularVelocity += (1 - normalizedDist) * 3.5 * dt * vortexResistance;
+        player.x += tangX * pullFactor * dt * 0.6 * vortexResistance;
+        player.y += tangY * pullFactor * dt * 0.6 * vortexResistance;
+        player.angle += (1 - normalizedDist) * 1.5 * dt * vortexResistance;
 
-        // Proximity warning sound
         soundManager.playWhirlpoolWarning(1 - normalizedDist);
 
-        // Water suction particles
-        if (Math.random() < 0.4) {
+        if (Math.random() < 0.3) {
           const pAngle = Math.random() * Math.PI * 2;
-          const pDist = 30 + Math.random() * (pullRadius - 30);
+          const pDist = 25 + Math.random() * (pullRadius - 25);
           particles.push({
             x: obs.x + Math.cos(pAngle) * pDist,
             y: obs.y + Math.sin(pAngle) * pDist,
-            vx: -Math.cos(pAngle) * 50 - Math.sin(pAngle) * 60,
-            vy: -Math.sin(pAngle) * 50 + Math.cos(pAngle) * 60,
+            vx: -Math.cos(pAngle) * 40 - Math.sin(pAngle) * 45,
+            vy: -Math.sin(pAngle) * 40 + Math.cos(pAngle) * 45,
             size: 2 + Math.random() * 3,
             alpha: 0.6,
-            life: 0.4,
-            maxLife: 0.4,
+            life: 0.35,
+            maxLife: 0.35,
             color: '#a0e4e0',
-            type: 'foam'
+            type: 'foam',
           });
         }
 
-        // Inner eye damage
-        if (dist < 32 && player.invulnerableTime <= 0 && player.shieldDuration <= 0) {
-          player.health -= 12 * dt;
+        if (dist < 30 && player.invulnerableTime <= 0 && player.shieldDuration <= 0) {
+          player.health -= 10 * dt;
           soundManager.playRockCollision();
         }
       }
     } else if (obs.type === 'caiman') {
-      obs.animTimer = (obs.animTimer || 0) + dt * 4;
+      obs.animTimer = (obs.animTimer || 0) + dt * 3.5;
       const dx = player.x - obs.x;
       const dy = player.y - obs.y;
       const dist = Math.hypot(dx, dy);
 
-      // Caiman stalks and lunges if boat is near
-      if (dist < 200 && dy > -50) {
-        obs.vx = (dx / dist) * 70;
-        obs.vy = 25;
-        if (Math.random() < 0.05) {
+      if (dist < 180 && dy > -40) {
+        obs.vx = (dx / dist) * 55;
+        obs.vy = 18;
+        if (Math.random() < 0.04) {
           soundManager.playAnimalEncounter('caiman');
         }
       }
     } else if (obs.type === 'piranha_shoal') {
-      obs.animTimer = (obs.animTimer || 0) + dt * 8;
-      // Shoal weaves across river
-      obs.vx = Math.sin(obs.animTimer * 0.8) * 80;
-      if (Math.random() < 0.08) {
+      obs.animTimer = (obs.animTimer || 0) + dt * 6;
+      obs.vx = Math.sin(obs.animTimer * 0.8) * 60;
+      if (Math.random() < 0.06) {
         soundManager.playAnimalEncounter('piranha');
       }
     } else if (obs.type === 'anaconda') {
-      obs.animTimer = (obs.animTimer || 0) + dt * 3;
-      obs.vx = Math.cos(obs.animTimer * 0.6) * 60;
-      // Animate segments
+      obs.animTimer = (obs.animTimer || 0) + dt * 2.8;
+      obs.vx = Math.cos(obs.animTimer * 0.5) * 50;
       if (!obs.segments) {
         obs.segments = Array.from({ length: 6 }, () => ({ x: obs.x, y: obs.y, angle: 0 }));
       }
       for (let i = 0; i < obs.segments.length; i++) {
         const seg = obs.segments[i];
         const lag = (i + 1) * 0.25;
-        seg.x = obs.x + Math.sin(obs.animTimer - lag) * 16 * (i + 1);
-        seg.y = obs.y - (i + 1) * 18;
+        seg.x = obs.x + Math.sin(obs.animTimer - lag) * 14 * (i + 1);
+        seg.y = obs.y - (i + 1) * 16;
       }
     }
 
@@ -326,23 +369,21 @@ export function updateObstacles(
       const isColliding = checkBoatCollisionWithCircle(player, obs.x, obs.y, obs.radius);
       if (isColliding) {
         if (player.shieldDuration > 0) {
-          // Deflected by spirit shield!
           obs.active = false;
           player.score += 150;
           soundManager.playCollectItem('shield');
-          // Splash burst
           for (let p = 0; p < 8; p++) {
             particles.push({
               x: obs.x,
               y: obs.y,
-              vx: (Math.random() - 0.5) * 120,
-              vy: (Math.random() - 0.5) * 120,
+              vx: (Math.random() - 0.5) * 100,
+              vy: (Math.random() - 0.5) * 100,
               size: 4 + Math.random() * 4,
               alpha: 0.9,
-              life: 0.5,
-              maxLife: 0.5,
+              life: 0.45,
+              maxLife: 0.45,
               color: '#facc15',
-              type: 'sparkle'
+              type: 'sparkle',
             });
           }
         } else if (player.invulnerableTime <= 0) {
@@ -350,24 +391,22 @@ export function updateObstacles(
           player.invulnerableTime = 0.8;
           soundManager.playRockCollision();
 
-          // Physical bounce impulse
           const bAngle = Math.atan2(player.y - obs.y, player.x - obs.x);
-          player.vx += Math.cos(bAngle) * 180;
-          player.vy += Math.sin(bAngle) * 100;
+          player.vx += Math.cos(bAngle) * 140;
+          player.vy += Math.sin(bAngle) * 80;
 
-          // Debris particles
-          for (let i = 0; i < 7; i++) {
+          for (let i = 0; i < 6; i++) {
             particles.push({
               x: player.x,
               y: player.y,
-              vx: (Math.random() - 0.5) * 100,
-              vy: (Math.random() - 0.5) * 100,
-              size: 3 + Math.random() * 4,
+              vx: (Math.random() - 0.5) * 80,
+              vy: (Math.random() - 0.5) * 80,
+              size: 3 + Math.random() * 3,
               alpha: 1,
-              life: 0.6,
-              maxLife: 0.6,
+              life: 0.5,
+              maxLife: 0.5,
               color: '#854d0e',
-              type: 'wood_debris'
+              type: 'wood_debris',
             });
           }
 
@@ -378,8 +417,7 @@ export function updateObstacles(
       }
     }
 
-    // Deactivate obstacles that moved off bottom of screen
-    if (obs.y > 800) {
+    if (obs.y > 760) {
       obs.active = false;
     }
   }
@@ -396,7 +434,7 @@ export function updateCollectibles(
     if (!item.active) continue;
 
     item.y += level.riverCurrent * dt;
-    item.bobOffset = Math.sin(item.bobSpeed * Date.now() * 0.003) * 6;
+    item.bobOffset = Math.sin(item.bobSpeed * Date.now() * 0.003) * 5;
 
     const isCollected = checkBoatCollisionWithCircle(player, item.x, item.y + item.bobOffset, item.radius);
     if (isCollected) {
@@ -410,7 +448,7 @@ export function updateCollectibles(
         player.health = Math.min(player.maxHealth, player.health + 25);
         soundManager.playCollectItem('fruit');
       } else if (item.type === 'shield') {
-        player.shieldDuration = 7;
+        player.shieldDuration = 8;
         soundManager.playCollectItem('shield');
       } else if (item.type === 'paddle_boost') {
         player.speedBoostDuration = 8;
@@ -420,24 +458,23 @@ export function updateCollectibles(
         soundManager.playCollectItem('boost');
       }
 
-      // Sparkle burst
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 8; i++) {
         particles.push({
           x: item.x,
           y: item.y,
-          vx: (Math.random() - 0.5) * 80,
-          vy: (Math.random() - 0.5) * 80,
+          vx: (Math.random() - 0.5) * 70,
+          vy: (Math.random() - 0.5) * 70,
           size: 3 + Math.random() * 3,
           alpha: 1,
-          life: 0.5,
-          maxLife: 0.5,
+          life: 0.45,
+          maxLife: 0.45,
           color: item.type === 'flower' ? '#f43f5e' : item.type === 'shield' ? '#38bdf8' : '#eab308',
-          type: 'sparkle'
+          type: 'sparkle',
         });
       }
     }
 
-    if (item.y > 800) {
+    if (item.y > 760) {
       item.active = false;
     }
   }

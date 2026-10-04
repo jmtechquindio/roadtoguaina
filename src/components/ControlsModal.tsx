@@ -35,20 +35,20 @@ export const ControlsModal: React.FC<ControlsModalProps> = ({ onClose }) => {
             </div>
             <div className="space-y-2 bg-[#10241b] p-3 rounded-lg border border-[#1f4231] font-mono text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-slate-300">Remar Izquierda:</span>
-                <span className="bg-black/50 px-2 py-0.5 rounded text-amber-200 border border-white/10">A ó ←</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-300">Remar Derecha:</span>
-                <span className="bg-black/50 px-2 py-0.5 rounded text-amber-200 border border-white/10">D ó →</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-300">Impulso / Sprint:</span>
+                <span className="text-slate-300">Subir río arriba (Avanzar):</span>
                 <span className="bg-black/50 px-2 py-0.5 rounded text-emerald-300 border border-white/10">W, ↑ ó Espacio</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-300">Frenar / Contrarremo:</span>
+                <span className="text-slate-300">Bajar en el río (Contrarremo):</span>
                 <span className="bg-black/50 px-2 py-0.5 rounded text-rose-300 border border-white/10">S ó ↓</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-300">Virar a la Izquierda:</span>
+                <span className="bg-black/50 px-2 py-0.5 rounded text-amber-200 border border-white/10">A ó ←</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-300">Virar a la Derecha:</span>
+                <span className="bg-black/50 px-2 py-0.5 rounded text-amber-200 border border-white/10">D ó →</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-300">Pausar partida:</span>

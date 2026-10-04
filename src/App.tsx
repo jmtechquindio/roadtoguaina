@@ -110,6 +110,10 @@ export default function App() {
       // Ignore when typing in inputs or modals
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+        e.preventDefault();
+      }
+
       if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
         setInputState((prev) => ({ ...prev, left: true }));
       } else if (e.code === 'KeyD' || e.code === 'ArrowRight') {

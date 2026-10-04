@@ -41,10 +41,13 @@ export interface PlayerBoat {
   paddleCycle: number; // animation timer for rowers
   isPaddlingLeft: boolean;
   isPaddlingRight: boolean;
+  isPaddlingUp: boolean;
+  isPaddlingDown: boolean;
   isBoosting: boolean;
   score: number;
   flowersCollected: number;
   distanceTraveled: number; // current progress in meters
+  timeElapsed: number; // seconds spent in current level
 }
 
 export type ObstacleType = 

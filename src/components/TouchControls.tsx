@@ -66,22 +66,22 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
         </button>
       </div>
 
-      {/* Right Propulsion / Boost Controls */}
+      {/* Right Vertical Propulsion Controls (Subir & Bajar) */}
       <div className="flex items-center gap-2 pointer-events-auto">
         <button
           type="button"
           onPointerDown={() => setKey('down', true)}
           onPointerUp={() => setKey('down', false)}
           onPointerLeave={() => setKey('down', false)}
-          className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex flex-col items-center justify-center transition-all active:scale-95 border cursor-pointer ${
+          className={`w-14 h-14 md:w-16 md:h-16 rounded-xl flex flex-col items-center justify-center transition-all active:scale-95 border cursor-pointer ${
             inputState.down
-              ? 'bg-rose-600/80 border-rose-300 text-white shadow-lg scale-95'
+              ? 'bg-rose-600/90 border-rose-300 text-white shadow-lg scale-95'
               : 'bg-black/60 hover:bg-black/80 border-white/20 text-slate-300 backdrop-blur-xs'
           }`}
-          title="Contrarremo / Frenar (Tecla S o Flecha Abajo)"
+          title="Bajar en el río / Contrarremo (Tecla S ó Flecha Abajo)"
         >
-          <ArrowDown className="w-5 h-5" />
-          <span className="text-[9px] font-semibold mt-0.5">Frenar</span>
+          <ArrowDown className="w-6 h-6" />
+          <span className="text-[10px] font-semibold mt-0.5">Bajar</span>
         </button>
 
         <button
@@ -90,14 +90,14 @@ export const TouchControls: React.FC<TouchControlsProps> = ({
           onPointerUp={() => setKey('up', false)}
           onPointerLeave={() => setKey('up', false)}
           className={`w-14 h-14 md:w-16 md:h-16 rounded-xl flex flex-col items-center justify-center transition-all active:scale-95 border cursor-pointer ${
-            inputState.up || inputState.boost
-              ? 'bg-emerald-500/90 border-emerald-300 text-slate-950 shadow-lg scale-95 ring-2 ring-emerald-400/50'
+            inputState.up
+              ? 'bg-emerald-500/95 border-emerald-300 text-slate-950 shadow-lg scale-95 ring-2 ring-emerald-400/50'
               : 'bg-black/60 hover:bg-black/80 border-white/20 text-emerald-300 backdrop-blur-xs'
           }`}
-          title="Remar Fuerte / Impulso (Tecla W, Espacio o Flecha Arriba)"
+          title="Subir río arriba (Tecla W, Espacio ó Flecha Arriba)"
         >
-          <Zap className="w-6 h-6 fill-current" />
-          <span className="text-[10px] font-bold mt-0.5">Impulso</span>
+          <ArrowUp className="w-6 h-6" />
+          <span className="text-[10px] font-bold mt-0.5">Subir</span>
         </button>
       </div>
     </div>

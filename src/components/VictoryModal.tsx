@@ -21,6 +21,11 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onReplayLevel,
   onOpenLevelSelect,
 }) => {
+  const elapsedSec = Math.floor(player.timeElapsed || 0);
+  const minutes = Math.floor(elapsedSec / 60);
+  const seconds = elapsedSec % 60;
+  const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-4 overflow-y-auto">
       <div className="bg-[#0b1913] border border-[#234736] rounded-xl max-w-lg w-full text-slate-200 overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200">
@@ -51,18 +56,22 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
               </p>
 
               {/* Grand Stats */}
-              <div className="grid grid-cols-3 gap-2 bg-[#12261b] p-3 rounded-lg border border-[#1f4231] text-center font-mono">
+              <div className="grid grid-cols-4 gap-2 bg-[#12261b] p-3 rounded-lg border border-[#1f4231] text-center font-mono">
                 <div>
-                  <span className="text-[10px] text-slate-400 block">Puntaje Final</span>
-                  <span className="text-base font-bold text-amber-300">{player.score}</span>
+                  <span className="text-[10px] text-slate-400 block">Tiempo</span>
+                  <span className="text-sm font-bold text-emerald-300">{timeStr}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 block">Flores de Inírida</span>
-                  <span className="text-base font-bold text-rose-300">{player.flowersCollected}</span>
+                  <span className="text-[10px] text-slate-400 block">Puntaje</span>
+                  <span className="text-sm font-bold text-amber-300">{player.score}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 block">Título Obtenido</span>
-                  <span className="text-[11px] font-bold text-emerald-300">Gran Timonel</span>
+                  <span className="text-[10px] text-slate-400 block">Flores</span>
+                  <span className="text-sm font-bold text-rose-300">{player.flowersCollected}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Título</span>
+                  <span className="text-[10px] font-bold text-emerald-300 truncate">Gran Timonel</span>
                 </div>
               </div>
 
@@ -120,14 +129,18 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
               </blockquote>
 
               {/* Level Stats */}
-              <div className="grid grid-cols-3 gap-2 bg-[#12261b] p-3 rounded-lg border border-[#1f4231] text-center font-mono">
+              <div className="grid grid-cols-4 gap-2 bg-[#12261b] p-3 rounded-lg border border-[#1f4231] text-center font-mono">
                 <div>
                   <span className="text-[10px] text-slate-400 block">Distancia</span>
                   <span className="text-sm font-bold text-slate-200">{level.targetDistance}m</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 block">Casco Final</span>
-                  <span className="text-sm font-bold text-emerald-400">{Math.round(player.health)}%</span>
+                  <span className="text-[10px] text-slate-400 block">Tiempo</span>
+                  <span className="text-sm font-bold text-emerald-400">{timeStr}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Casco</span>
+                  <span className="text-sm font-bold text-slate-200">{Math.round(player.health)}%</span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 block">Puntos</span>

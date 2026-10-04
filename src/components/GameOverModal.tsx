@@ -17,6 +17,11 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
 }) => {
   const distancePct = Math.min(100, Math.round((player.distanceTraveled / level.targetDistance) * 100));
 
+  const elapsedSec = Math.floor(player.timeElapsed || 0);
+  const minutes = Math.floor(elapsedSec / 60);
+  const seconds = elapsedSec % 60;
+  const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
   // Helpful tactical advice
   let survivalTip = 'Recoge el Chontaduro (frutas anaranjadas) para reparar el casco dañado.';
   if (level.whirlpoolChance > 0.3) {
@@ -47,10 +52,14 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         {/* Content */}
         <div className="p-5 space-y-4">
           {/* Progress */}
-          <div className="bg-black/50 p-3 rounded-lg border border-white/5 space-y-1.5 font-mono text-xs">
+          <div className="bg-black/50 p-3 rounded-lg border border-white/5 space-y-2 font-mono text-xs">
             <div className="flex justify-between text-slate-300">
               <span>Recorrido alcanzado:</span>
               <span className="font-bold text-amber-300">{Math.round(player.distanceTraveled)}m / {level.targetDistance}m ({distancePct}%)</span>
+            </div>
+            <div className="flex justify-between text-slate-300">
+              <span>Tiempo navegado:</span>
+              <span className="font-bold text-emerald-400">{timeStr}</span>
             </div>
             <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
               <div className="h-full bg-rose-500" style={{ width: `${distancePct}%` }} />

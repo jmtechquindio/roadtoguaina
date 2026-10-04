@@ -755,6 +755,24 @@ function drawPlayerCuriara(ctx: CanvasRenderingContext2D, player: PlayerBoat, ti
   ctx.quadraticCurveTo(-w * 0.7, 0, -w * 0.4, h * 0.5);
   ctx.stroke();
 
+  // Dynamic wake when climbing up or back-paddling
+  if (player.isPaddlingUp) {
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -h * 0.58);
+    ctx.lineTo(w * 0.7, -h * 0.2);
+    ctx.moveTo(0, -h * 0.58);
+    ctx.lineTo(-w * 0.7, -h * 0.2);
+    ctx.stroke();
+  } else if (player.isPaddlingDown) {
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, -h * 0.4, w * 0.55, -Math.PI * 0.85, -Math.PI * 0.15);
+    ctx.stroke();
+  }
+
   // 2. Wooden Curiara Hull
   const woodGrad = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
   woodGrad.addColorStop(0, '#451a03'); // Dark teak/cedro edge

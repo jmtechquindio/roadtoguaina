@@ -13,11 +13,17 @@ export const HUD: React.FC<HUDProps> = ({ player, level, totalLevels }) => {
   const healthPct = Math.max(0, Math.round(player.health));
   const staminaPct = Math.max(0, Math.round(player.stamina));
 
+  // Elapsed time format mm:ss
+  const elapsedSec = Math.floor(player.timeElapsed || 0);
+  const minutes = Math.floor(elapsedSec / 60);
+  const seconds = elapsedSec % 60;
+  const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
   const healthColor = healthPct > 60 ? 'bg-emerald-500' : healthPct > 30 ? 'bg-amber-500' : 'bg-rose-500';
 
   return (
     <div className="absolute top-0 left-0 right-0 p-3 md:p-4 pointer-events-none select-none z-10 flex flex-col gap-2">
-      {/* Top Row: Unboxed Level Metadata & Score */}
+      {/* Top Row: Unboxed Level Metadata, Timer & Score */}
       <div className="flex items-center justify-between text-xs md:text-sm text-slate-300 drop-shadow-md">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-amber-200">
@@ -30,6 +36,11 @@ export const HUD: React.FC<HUDProps> = ({ player, level, totalLevels }) => {
         </div>
 
         <div className="flex items-center gap-3 font-mono tabular-nums">
+          <div className="flex items-center gap-1 text-emerald-300">
+            <span className="text-xs text-emerald-400">Tiempo:</span>
+            <span className="font-bold">{timeStr}</span>
+          </div>
+          <span aria-hidden="true" className="text-slate-600">|</span>
           <div className="flex items-center gap-1 text-rose-300">
             <span className="text-xs text-rose-400">Flores:</span>
             <span className="font-bold">{player.flowersCollected}</span>
@@ -92,8 +103,20 @@ export const HUD: React.FC<HUDProps> = ({ player, level, totalLevels }) => {
         </div>
       </div>
 
-      {/* Active Powerups & Warnings Row */}
+      {/* Active Powerups, Maneuver Status & Warnings Row */}
       <div className="flex items-center gap-2">
+        {player.isPaddlingUp && (
+          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-950/80 border border-emerald-500/40 rounded-md text-emerald-200 text-[11px]">
+            <span className="font-bold">▲ Subiendo Río</span>
+          </div>
+        )}
+
+        {player.isPaddlingDown && (
+          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-950/80 border border-amber-500/40 rounded-md text-amber-200 text-[11px]">
+            <span className="font-bold">▼ Bajando / Contrarremo</span>
+          </div>
+        )}
+
         {player.shieldDuration > 0 && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 bg-sky-950/80 border border-sky-400/40 rounded-md text-sky-200 text-xs shadow-sm animate-pulse">
             <Shield className="w-3.5 h-3.5 text-sky-400" />
